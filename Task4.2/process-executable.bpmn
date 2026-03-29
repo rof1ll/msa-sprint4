@@ -1,0 +1,261 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+  id="Definitions_payment_saga_executable"
+  targetNamespace="http://bpmn.io/schema/bpmn">
+
+  <bpmn:process id="payment-saga-executable" name="Payment Saga Executable" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="Task_StartSaga" name="Запуск saga-платежа">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="start-saga" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CreatePayment" name="CREATE_PAYMENT">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="create-payment" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Debit" name="DEBIT_CUSTOMER_ACCOUNT">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="debit-customer" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Fraud" name="RUN_FRAUD_CHECK">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="run-fraud-check" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:exclusiveGateway id="Gateway_Fraud" name="Результат антифрод проверки?">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApproveRecord</bpmn:outgoing>
+      <bpmn:outgoing>Flow_RejectRecord</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ManualInit</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_FraudApproved" name="Проверка пройдена">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="fraud-approved" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ApproveRecord</bpmn:incoming>
+      <bpmn:outgoing>Flow_ApproveTransfer</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_FraudRejected" name="Проверка не пройдена">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="fraud-rejected" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_RejectRecord</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectRefund</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_PrepareManualReview" name="Начало ручной проверки, с таймером 20 минут">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="prepare-manual-review" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ManualInit</bpmn:incoming>
+      <bpmn:outgoing>Flow_PrepareToStartManual</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_StartManualReview" name="START_MANUAL_REVIEW">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="start-manual-review" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_PrepareToStartManual</bpmn:incoming>
+      <bpmn:outgoing>Flow_StartToWaitManual</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="Task_ManualReview" name="Ожидание решения">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_StartToWaitManual</bpmn:incoming>
+      <bpmn:outgoing>Flow_WaitToDecisionGateway</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:boundaryEvent id="Boundary_Cutoff" attachedToRef="Task_ManualReview" cancelActivity="true">
+      <bpmn:outgoing>Flow_ToTimeoutMarker</bpmn:outgoing>
+      <bpmn:timerEventDefinition>
+        <bpmn:timeDuration xsi:type="bpmn:tFormalExpression">PT20M</bpmn:timeDuration>
+      </bpmn:timerEventDefinition>
+    </bpmn:boundaryEvent>
+
+    <bpmn:exclusiveGateway id="Gateway_ManualDecision" name="Решение ручной проверки?">
+      <bpmn:incoming>Flow_WaitToDecisionGateway</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManualApproveRecord</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ManualRejectRecord</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:serviceTask id="Task_ManualApprove" name="Разрешить">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="manual-approve" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ManualApproveRecord</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManualApproveTransfer</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_ManualReject" name="Запретить">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="manual-reject" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ManualRejectRecord</bpmn:incoming>
+      <bpmn:outgoing>Flow_ManualRejectRefund</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Timeout" name="Таймаут">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="timeout-marker" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToTimeoutMarker</bpmn:incoming>
+      <bpmn:outgoing>Flow_TimeoutToCutoff</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_CutoffApproval" name="APPLY_CUTOFF_APPROVAL">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="apply-cutoff-approval" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_TimeoutToCutoff</bpmn:incoming>
+      <bpmn:outgoing>Flow_CutoffToTransfer</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_Transfer" name="TRANSFER_TO_MERCHANT">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="transfer-to-merchant" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ApproveTransfer</bpmn:incoming>
+      <bpmn:incoming>Flow_ManualApproveTransfer</bpmn:incoming>
+      <bpmn:incoming>Flow_CutoffToTransfer</bpmn:incoming>
+      <bpmn:outgoing>Flow_TransferToMarkSuccess</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_MarkSuccess" name="MARK_PAYMENT_SUCCEEDED">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="mark-success" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_TransferToMarkSuccess</bpmn:incoming>
+      <bpmn:outgoing>Flow_SuccessToNotify</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_NotifySuccess" name="SEND_CUSTOMER_NOTIFICATION">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notify-customer" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_SuccessToNotify</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifySuccessEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="End_Success">
+      <bpmn:incoming>Flow_NotifySuccessEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:serviceTask id="Task_Refund" name="REFUND_CUSTOMER_ACCOUNT">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="refund-customer" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_RejectRefund</bpmn:incoming>
+      <bpmn:incoming>Flow_ManualRejectRefund</bpmn:incoming>
+      <bpmn:outgoing>Flow_RefundToMarkRejected</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_MarkRejected" name="MARK_PAYMENT_REJECTED">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="mark-rejected" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_RefundToMarkRejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_MarkRejectedSplit</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:parallelGateway id="Gateway_RejectSplit">
+      <bpmn:incoming>Flow_MarkRejectedSplit</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToSecurityAlert</bpmn:outgoing>
+      <bpmn:outgoing>Flow_ToRejectNotification</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:serviceTask id="Task_SecurityAlert" name="SEND_SECURITY_ALERT">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="send-security-alert" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToSecurityAlert</bpmn:incoming>
+      <bpmn:outgoing>Flow_SecurityToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="Task_NotifyRejected" name="SEND_CUSTOMER_NOTIFICATION">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="notify-customer" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToRejectNotification</bpmn:incoming>
+      <bpmn:outgoing>Flow_NotifyRejectedToJoin</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:parallelGateway id="Gateway_RejectJoin">
+      <bpmn:incoming>Flow_SecurityToJoin</bpmn:incoming>
+      <bpmn:incoming>Flow_NotifyRejectedToJoin</bpmn:incoming>
+      <bpmn:outgoing>Flow_RejectEnd</bpmn:outgoing>
+    </bpmn:parallelGateway>
+
+    <bpmn:endEvent id="End_Rejected">
+      <bpmn:incoming>Flow_RejectEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_StartSaga" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_StartSaga" targetRef="Task_CreatePayment" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_CreatePayment" targetRef="Task_Debit" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Task_Debit" targetRef="Task_Fraud" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_Fraud" targetRef="Gateway_Fraud" />
+
+    <bpmn:sequenceFlow id="Flow_ApproveRecord" sourceRef="Gateway_Fraud" targetRef="Task_FraudApproved">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= fraudResult = "approve"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_RejectRecord" sourceRef="Gateway_Fraud" targetRef="Task_FraudRejected">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= fraudResult = "reject"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ManualInit" sourceRef="Gateway_Fraud" targetRef="Task_PrepareManualReview">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= fraudResult = "manual_review"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+
+    <bpmn:sequenceFlow id="Flow_ApproveTransfer" sourceRef="Task_FraudApproved" targetRef="Task_Transfer" />
+    <bpmn:sequenceFlow id="Flow_RejectRefund" sourceRef="Task_FraudRejected" targetRef="Task_Refund" />
+    <bpmn:sequenceFlow id="Flow_PrepareToStartManual" sourceRef="Task_PrepareManualReview" targetRef="Task_StartManualReview" />
+    <bpmn:sequenceFlow id="Flow_StartToWaitManual" sourceRef="Task_StartManualReview" targetRef="Task_ManualReview" />
+    <bpmn:sequenceFlow id="Flow_WaitToDecisionGateway" sourceRef="Task_ManualReview" targetRef="Gateway_ManualDecision" />
+    <bpmn:sequenceFlow id="Flow_ManualApproveRecord" sourceRef="Gateway_ManualDecision" targetRef="Task_ManualApprove">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= manualReviewDecision = "approve"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ManualRejectRecord" sourceRef="Gateway_ManualDecision" targetRef="Task_ManualReject">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">= manualReviewDecision = "reject"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_ManualApproveTransfer" sourceRef="Task_ManualApprove" targetRef="Task_Transfer" />
+    <bpmn:sequenceFlow id="Flow_ManualRejectRefund" sourceRef="Task_ManualReject" targetRef="Task_Refund" />
+    <bpmn:sequenceFlow id="Flow_ToTimeoutMarker" sourceRef="Boundary_Cutoff" targetRef="Task_Timeout" />
+    <bpmn:sequenceFlow id="Flow_TimeoutToCutoff" sourceRef="Task_Timeout" targetRef="Task_CutoffApproval" />
+    <bpmn:sequenceFlow id="Flow_CutoffToTransfer" sourceRef="Task_CutoffApproval" targetRef="Task_Transfer" />
+
+    <bpmn:sequenceFlow id="Flow_TransferToMarkSuccess" sourceRef="Task_Transfer" targetRef="Task_MarkSuccess" />
+    <bpmn:sequenceFlow id="Flow_SuccessToNotify" sourceRef="Task_MarkSuccess" targetRef="Task_NotifySuccess" />
+    <bpmn:sequenceFlow id="Flow_NotifySuccessEnd" sourceRef="Task_NotifySuccess" targetRef="End_Success" />
+
+    <bpmn:sequenceFlow id="Flow_RefundToMarkRejected" sourceRef="Task_Refund" targetRef="Task_MarkRejected" />
+    <bpmn:sequenceFlow id="Flow_MarkRejectedSplit" sourceRef="Task_MarkRejected" targetRef="Gateway_RejectSplit" />
+    <bpmn:sequenceFlow id="Flow_ToSecurityAlert" sourceRef="Gateway_RejectSplit" targetRef="Task_SecurityAlert" />
+    <bpmn:sequenceFlow id="Flow_ToRejectNotification" sourceRef="Gateway_RejectSplit" targetRef="Task_NotifyRejected" />
+    <bpmn:sequenceFlow id="Flow_SecurityToJoin" sourceRef="Task_SecurityAlert" targetRef="Gateway_RejectJoin" />
+    <bpmn:sequenceFlow id="Flow_NotifyRejectedToJoin" sourceRef="Task_NotifyRejected" targetRef="Gateway_RejectJoin" />
+    <bpmn:sequenceFlow id="Flow_RejectEnd" sourceRef="Gateway_RejectJoin" targetRef="End_Rejected" />
+  </bpmn:process>
+</bpmn:definitions>

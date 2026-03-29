@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Task3/ADR.md",
+                "file": "Task6/README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ADR"
+              "title": "README"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Task3/ADR.md",
+                "file": "Task6/README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Обратные ссылки для ADR"
+              "title": "Обратные ссылки для README"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Task3/ADR.md",
+                "file": "Task6/README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Исходящие ссылки из ADR"
+              "title": "Исходящие ссылки из README"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Task3/ADR.md",
+                "file": "Task6/README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Структура ADR"
+              "title": "Структура README"
             }
           }
         ]
@@ -185,8 +185,51 @@
   },
   "active": "290064723c3d2db4",
   "lastOpenFiles": [
-    "Example/ADR.md",
+    "README.md",
+    "Task5/README.md",
+    "Task6/README.md",
+    "Task6",
     "Task1/README.md",
-    "Task3/ADR.md"
+    "Task5",
+    "Ефыл5",
+    "Task4.2/4.png",
+    "Task4.2/3.png",
+    "Task4.2/2.png",
+    "Task4.2/1.png",
+    "4.png",
+    "image.png",
+    "Task4.2/payment-worker.log",
+    "3.png",
+    "2.png",
+    "1.png",
+    "Task4.2/screenshots/tasklist-ui.png",
+    "Task4.2/screenshots/payment-worker-log.html",
+    "Task4.2/ui-shot/capture.js",
+    "Task4.2/ui-shot/node_modules/playwright-core/lib/server/har/harTracer.js",
+    "Task4.2/ui-shot/node_modules/playwright-core/lib/server/har/harRecorder.js",
+    "Task4.2/ui-shot/node_modules/playwright-core/lib/server/har",
+    "Task4.2/ui-shot/package-lock.json",
+    "Task4.2/README.md",
+    "Task4.2/package/example/README.md",
+    "Task4.2/package/README.md",
+    "Task4.2/package/DEVELOP.md",
+    "Task4.2/package/CONTRIBUTING.md",
+    "Task4.2/package/CODE_OF_CONDUCT.md",
+    "Task4.2/package/CHANGELOG.md",
+    "Task4.2/_inspect/node_modules/@types/responselike/README.md",
+    "Task4.2/_inspect/node_modules/get-stream/readme.md",
+    "Task4.2/_inspect/node_modules/resolve-alpn/README.md",
+    "Task4.2/_inspect/node_modules/@protobufjs/aspromise/README.md",
+    "Task4.2/_inspect/node_modules/@protobufjs/codegen/README.md",
+    "Task4.2/_inspect/node_modules/@protobufjs/eventemitter/README.md",
+    "Task4.2/_inspect/node_modules/@protobufjs/float/README.md",
+    "Task4.2/_inspect/node_modules/has-flag/readme.md",
+    "Task4.2/_inspect/node_modules/end-of-stream/README.md",
+    "Task4.2/_inspect/node_modules/retry/README.md",
+    "Task4.2/_inspect/node_modules/yargs-parser/README.md",
+    "Task4.2/_inspect/node_modules/y18n/README.md",
+    "Task4.2/_inspect/node_modules/cliui/README.md",
+    "Task3/ADR.md",
+    "Example/ADR.md"
   ]
 }
